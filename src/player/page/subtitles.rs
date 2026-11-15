@@ -60,9 +60,11 @@ impl PlaybackPage {
                 .into_any_element();
         }
 
+        let subtitle_scale = normalized_subtitle_scale(self.subtitle_scale);
         let bitmap_canvas_size = subtitle_bitmap_canvas_size(cue).unwrap_or(source_size);
         let bitmap_bounds =
             aspect_fit_bounds(video_bounds, bitmap_canvas_size).unwrap_or(video_fitted_bounds);
+        let bitmap_bounds = scaled_subtitle_bounds(bitmap_bounds, subtitle_scale);
         let scale_x = bitmap_bounds.size.width / px(bitmap_canvas_size.width as f32);
         let scale_y = bitmap_bounds.size.height / px(bitmap_canvas_size.height as f32);
         let subtitle_bottom = subtitle_video_bottom(video_fitted_bounds);
@@ -149,14 +151,40 @@ impl PlaybackPage {
                             .max_w(relative(0.86))
                             .px_3()
                             .text_center()
-                            .text_3xl()
-                            .line_height(px(36.0))
+                            .text_size(px(30.0 * subtitle_scale))
+                            .line_height(px(36.0 * subtitle_scale))
                             .text_color(rgb(0xffffff))
                             .child(cue.text.clone()),
                     ),
             )
             .into_any_element()
     }
+}
+
+const SUBTITLE_SCALE_MIN: f32 = 0.5;
+const SUBTITLE_SCALE_MAX: f32 = 3.0;
+
+pub(super) fn normalized_subtitle_scale(scale: f32) -> f32 {
+    if scale.is_finite() {
+        scale.clamp(SUBTITLE_SCALE_MIN, SUBTITLE_SCALE_MAX)
+    } else {
+        1.0
+    }
+}
+
+pub(super) fn scaled_subtitle_bounds(bounds: Bounds<Pixels>, scale: f32) -> Bounds<Pixels> {
+    if (scale - 1.0).abs() < f32::EPSILON {
+        return bounds;
+    }
+    let width = bounds.size.width * scale;
+    let height = bounds.size.height * scale;
+    Bounds::new(
+        gpui::point(
+            bounds.origin.x + (bounds.size.width - width) / 2.0,
+            bounds.origin.y + bounds.size.height - height,
+        ),
+        gpui::size(width, height),
+    )
 }
 
 pub(super) fn render_subtitle_bitmap(
