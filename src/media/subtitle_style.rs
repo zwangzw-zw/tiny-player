@@ -16,12 +16,7 @@ pub enum SubtitleTextColor {
 }
 
 impl SubtitleTextColor {
-    pub(crate) const ALL: [Self; 4] = [
-        Self::White,
-        Self::WarmWhite,
-        Self::Yellow,
-        Self::LightGray,
-    ];
+    pub(crate) const ALL: [Self; 4] = [Self::White, Self::WarmWhite, Self::Yellow, Self::LightGray];
 
     pub(crate) fn id(self) -> &'static str {
         match self {
@@ -153,8 +148,7 @@ impl SubtitleStyle {
             if !value.is_finite() {
                 return None;
             }
-            let value =
-                value.clamp(-MAX_VERTICAL_OFFSET_FRACTION, MAX_VERTICAL_OFFSET_FRACTION);
+            let value = value.clamp(-MAX_VERTICAL_OFFSET_FRACTION, MAX_VERTICAL_OFFSET_FRACTION);
             (value.abs() >= MIN_PERSISTED_OFFSET_FRACTION).then_some(value)
         });
         self

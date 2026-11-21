@@ -367,7 +367,10 @@ mod tests {
         let mut json = serde_json::to_value(&cache).unwrap();
         json.as_object_mut().unwrap().remove("subtitle_style");
         let loaded: ServerCache = serde_json::from_value(json).unwrap();
-        assert_eq!(loaded.subtitle_style, crate::media::SubtitleStyle::default());
+        assert_eq!(
+            loaded.subtitle_style,
+            crate::media::SubtitleStyle::default()
+        );
     }
 
     #[test]

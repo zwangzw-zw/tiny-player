@@ -26,8 +26,7 @@ pub(crate) const DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION: &str =
 pub(crate) const PLAYBACK_DEBUG_LOG_LABEL: &str = "播放调试日志";
 pub(crate) const PLAYBACK_DEBUG_LOG_DESCRIPTION: &str =
     "记录播放 DEBUG 及以上级别的原始消息、状态和错误详情。立即生效。";
-pub(crate) const SUBTITLE_TEXT_COLOR_DESCRIPTION: &str =
-    "选择文字字幕的颜色；位图字幕保持原样。";
+pub(crate) const SUBTITLE_TEXT_COLOR_DESCRIPTION: &str = "选择文字字幕的颜色；位图字幕保持原样。";
 pub(crate) const SUBTITLE_OUTLINE_DESCRIPTION: &str =
     "为文字字幕添加黑色描边，提高亮色画面下的可读性。";
 pub(crate) const SUBTITLE_BACKGROUND_DESCRIPTION: &str =
@@ -150,8 +149,7 @@ pub(crate) fn subtitle_background_selector(
     selector_row(
         ("subtitle-background-dropdown", "字幕背景"),
         state,
-        SubtitleBackground::ALL
-            .map(|background| (background.id(), background.name(), background)),
+        SubtitleBackground::ALL.map(|background| (background.id(), background.name(), background)),
         selected,
         on_select,
     )

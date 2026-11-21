@@ -1,11 +1,11 @@
 //! User-facing preferences. Advanced cache tuning stays in the development dialog.
 use super::controls::{
     PLAYBACK_DEBUG_LOG_DESCRIPTION, PLAYBACK_DEBUG_LOG_LABEL, SUBTITLE_BACKGROUND_DESCRIPTION,
-    SUBTITLE_OUTLINE_DESCRIPTION, SUBTITLE_TEXT_COLOR_DESCRIPTION, USER_HARDWARE_DECODE_DESCRIPTION,
-    app_language_selector, disk_cache_capacity_control, disk_cache_capacity_input,
-    hardware_decode_selector, playback_log_location, settings_category_button, settings_sidebar,
-    subtitle_background_selector, subtitle_outline_selector, subtitle_text_color_selector,
-    track_language_selector,
+    SUBTITLE_OUTLINE_DESCRIPTION, SUBTITLE_TEXT_COLOR_DESCRIPTION,
+    USER_HARDWARE_DECODE_DESCRIPTION, app_language_selector, disk_cache_capacity_control,
+    disk_cache_capacity_input, hardware_decode_selector, playback_log_location,
+    settings_category_button, settings_sidebar, subtitle_background_selector,
+    subtitle_outline_selector, subtitle_text_color_selector, track_language_selector,
 };
 use super::dialog::SettingsChanged;
 use crate::ui::{

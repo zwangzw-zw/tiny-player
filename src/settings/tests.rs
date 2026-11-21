@@ -113,9 +113,8 @@ fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
         let mut controller = controller(mode);
         let original = controller.snapshot();
 
-        let change = controller.dispatch(SettingsIntent::SubtitleTextColor(
-            SubtitleTextColor::Yellow,
-        ));
+        let change =
+            controller.dispatch(SettingsIntent::SubtitleTextColor(SubtitleTextColor::Yellow));
         assert!(change.persist && change.view_changed);
         assert_eq!(
             change.subtitle_style.map(|style| style.text_color),
@@ -141,10 +140,7 @@ fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
             }
         );
 
-        let mut config = crate::config::GlobalConfig::split(
-            crate::storage::ServerCache::empty(),
-        )
-        .0;
+        let mut config = crate::config::GlobalConfig::split(crate::storage::ServerCache::empty()).0;
         SettingsPersistenceAdapter::apply(controller.snapshot(), &mut config);
         assert_eq!(config.subtitle_style, controller.snapshot().subtitle_style);
 
@@ -154,13 +150,9 @@ fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
             controller.snapshot().subtitle_style
         );
 
-        controller.dispatch(SettingsIntent::SubtitleTextColor(
-            SubtitleTextColor::White,
-        ));
+        controller.dispatch(SettingsIntent::SubtitleTextColor(SubtitleTextColor::White));
         controller.dispatch(SettingsIntent::SubtitleOutline(SubtitleOutline::Off));
-        controller.dispatch(SettingsIntent::SubtitleBackground(
-            SubtitleBackground::Off,
-        ));
+        controller.dispatch(SettingsIntent::SubtitleBackground(SubtitleBackground::Off));
         assert_eq!(controller.snapshot(), original);
     }
 }

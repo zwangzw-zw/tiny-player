@@ -93,9 +93,8 @@ impl PlaybackSettingsDialogState {
                     self.dropdown.clone(),
                     self.controller.view_model().subtitle_style.outline,
                     move |outline, cx| {
-                        outline_dialog.update(cx, |dialog, cx| {
-                            dialog.select_subtitle_outline(outline, cx)
-                        })
+                        outline_dialog
+                            .update(cx, |dialog, cx| dialog.select_subtitle_outline(outline, cx))
                     },
                 ),
             ),
