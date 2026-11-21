@@ -4,9 +4,11 @@ mod items;
 mod layout;
 use super::controls::{
     DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION, PLAYBACK_DEBUG_LOG_DESCRIPTION,
-    PLAYBACK_DEBUG_LOG_LABEL, app_language_selector, disk_cache_capacity_control,
+    PLAYBACK_DEBUG_LOG_LABEL, SUBTITLE_BACKGROUND_DESCRIPTION, SUBTITLE_OUTLINE_DESCRIPTION,
+    SUBTITLE_TEXT_COLOR_DESCRIPTION, app_language_selector, disk_cache_capacity_control,
     disk_cache_capacity_input, hardware_decode_selector, playback_log_location,
-    settings_category_button, settings_sidebar, track_language_selector,
+    settings_category_button, settings_sidebar, subtitle_background_selector,
+    subtitle_outline_selector, subtitle_text_color_selector, track_language_selector,
 };
 use super::dialog::SettingsChanged;
 use crate::ui::number_input::{NumberControl, NumberRange};
@@ -32,7 +34,7 @@ use gpui::{
 use crate::ui::radius;
 use crate::{
     app::window_corner_radii,
-    media::TrackLanguage,
+    media::{SubtitleBackground, SubtitleOutline, SubtitleTextColor, TrackLanguage},
     theme::{self, ColorTheme},
 };
 use tiny_playback::{
@@ -238,6 +240,9 @@ impl PlaybackSettingsDialogState {
         if let Some(languages) = change.languages {
             languages.apply(cx);
         }
+        if let Some(style) = change.subtitle_style {
+            style.apply_appearance(cx);
+        }
         if change.persist {
             cx.emit(SettingsChanged);
         }
@@ -258,6 +263,19 @@ impl PlaybackSettingsDialogState {
     }
     fn select_app_language(&mut self, language: AppLanguage, cx: &mut Context<Self>) {
         self.dispatch(SettingsIntent::AppLanguage(language), cx);
+    }
+    fn select_subtitle_text_color(&mut self, color: SubtitleTextColor, cx: &mut Context<Self>) {
+        self.dispatch(SettingsIntent::SubtitleTextColor(color), cx);
+    }
+    fn select_subtitle_outline(&mut self, outline: SubtitleOutline, cx: &mut Context<Self>) {
+        self.dispatch(SettingsIntent::SubtitleOutline(outline), cx);
+    }
+    fn select_subtitle_background(
+        &mut self,
+        background: SubtitleBackground,
+        cx: &mut Context<Self>,
+    ) {
+        self.dispatch(SettingsIntent::SubtitleBackground(background), cx);
     }
     fn select_hardware_decode(&mut self, mode: HardwareDecodeMode, cx: &mut Context<Self>) {
         self.dispatch(SettingsIntent::HardwareDecode(mode), cx);

@@ -2,8 +2,11 @@
 use super::*;
 
 impl PlaybackSettingsDialogState {
-    pub(super) fn playback_items(&self, dialog: Entity<Self>, cx: &App) -> [SettingItem; 5] {
+    pub(super) fn playback_items(&self, dialog: Entity<Self>, cx: &App) -> [SettingItem; 8] {
         use SettingsCategory::*;
+        let color_dialog = dialog.clone();
+        let outline_dialog = dialog.clone();
+        let background_dialog = dialog.clone();
         [
             SettingItem::new(
                 Appearance,
@@ -61,6 +64,54 @@ impl PlaybackSettingsDialogState {
                                 dialog.select_track_language(language, false, cx)
                             })
                         }
+                    },
+                ),
+            ),
+            SettingItem::new(
+                Playback,
+                "字幕样式",
+                "字幕颜色",
+                SUBTITLE_TEXT_COLOR_DESCRIPTION,
+                "subtitle color text 字幕 颜色",
+                subtitle_text_color_selector(
+                    self.dropdown.clone(),
+                    self.controller.view_model().subtitle_style.text_color,
+                    move |color, cx| {
+                        color_dialog.update(cx, |dialog, cx| {
+                            dialog.select_subtitle_text_color(color, cx)
+                        })
+                    },
+                ),
+            ),
+            SettingItem::new(
+                Playback,
+                "字幕样式",
+                "字幕描边",
+                SUBTITLE_OUTLINE_DESCRIPTION,
+                "subtitle outline edge 字幕 描边",
+                subtitle_outline_selector(
+                    self.dropdown.clone(),
+                    self.controller.view_model().subtitle_style.outline,
+                    move |outline, cx| {
+                        outline_dialog.update(cx, |dialog, cx| {
+                            dialog.select_subtitle_outline(outline, cx)
+                        })
+                    },
+                ),
+            ),
+            SettingItem::new(
+                Playback,
+                "字幕样式",
+                "字幕背景",
+                SUBTITLE_BACKGROUND_DESCRIPTION,
+                "subtitle background box 字幕 背景",
+                subtitle_background_selector(
+                    self.dropdown.clone(),
+                    self.controller.view_model().subtitle_style.background,
+                    move |background, cx| {
+                        background_dialog.update(cx, |dialog, cx| {
+                            dialog.select_subtitle_background(background, cx)
+                        })
                     },
                 ),
             ),

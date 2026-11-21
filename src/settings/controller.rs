@@ -3,7 +3,10 @@ use super::{
     model::*,
     values::{BYTES_PER_MIB, parse_seconds},
 };
-use crate::{media::PlaybackLanguagePreferences, theme::ColorTheme};
+use crate::{
+    media::{PlaybackLanguagePreferences, SubtitleStyle},
+    theme::ColorTheme,
+};
 use std::collections::HashSet;
 use tiny_playback::{HardwareDecodeMode, PlaybackCacheConfig};
 
@@ -25,6 +28,7 @@ pub(crate) struct SettingsVm<'a> {
     pub(crate) color_theme: ColorTheme,
     pub(crate) app_language: AppLanguage,
     pub(crate) track_languages: PlaybackLanguagePreferences,
+    pub(crate) subtitle_style: SubtitleStyle,
     pub(crate) category: SettingsCategory,
     pub(crate) query: &'a str,
     pub(crate) editable: bool,
@@ -73,6 +77,7 @@ impl SettingsController {
             snapshot.app_language,
             snapshot.track_languages,
             snapshot.playback_debug_log,
+            snapshot.subtitle_style,
         )
     }
 
@@ -83,6 +88,7 @@ impl SettingsController {
         app_language: AppLanguage,
         track_languages: PlaybackLanguagePreferences,
         playback_debug_log: bool,
+        subtitle_style: SubtitleStyle,
     ) -> Self {
         Self {
             snapshot: SettingsSnapshot {
@@ -91,6 +97,7 @@ impl SettingsController {
                 app_language,
                 track_languages,
                 playback_debug_log,
+                subtitle_style: subtitle_style.normalized(),
             },
             mode,
             category: SettingsCategory::default(),
@@ -107,6 +114,7 @@ impl SettingsController {
             color_theme: self.snapshot.color_theme,
             app_language: self.snapshot.app_language,
             track_languages: self.snapshot.track_languages,
+            subtitle_style: self.snapshot.subtitle_style,
             category: self.category,
             query: &self.query,
             editable: !self.closed,
@@ -199,6 +207,15 @@ impl SettingsController {
             SettingsIntent::SeekableCache(mode) => config.seekable_cache = mode,
             SettingsIntent::UnlinkFiles(policy) => config.unlink_files = policy,
             SettingsIntent::SubtitleScale(scale) => config.subtitle_scale = scale.clamp(0.5, 3.0),
+            SettingsIntent::SubtitleTextColor(color) => {
+                self.snapshot.subtitle_style.text_color = color;
+            }
+            SettingsIntent::SubtitleOutline(outline) => {
+                self.snapshot.subtitle_style.outline = outline;
+            }
+            SettingsIntent::SubtitleBackground(background) => {
+                self.snapshot.subtitle_style.background = background;
+            }
             SettingsIntent::Toggle(setting) => {
                 let value = match setting {
                     ToggleSetting::DecoderFramedrop => &mut config.decoder_framedrop,
@@ -239,6 +256,8 @@ impl SettingsController {
                 .then_some(self.snapshot.color_theme),
             languages: (self.snapshot.track_languages != previous.track_languages)
                 .then_some(self.snapshot.track_languages),
+            subtitle_style: (self.snapshot.subtitle_style != previous.subtitle_style)
+                .then_some(self.snapshot.subtitle_style),
         }
     }
 }

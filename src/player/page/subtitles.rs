@@ -1,4 +1,5 @@
 use super::*;
+use crate::media::SubtitleStyle;
 
 const SUBTITLE_VERTICAL_ADJUST_STEP_FRACTION: f32 = 0.01;
 
@@ -18,13 +19,25 @@ impl PlaybackPage {
             .subtitle
             .vertical_offset_fraction
             .unwrap_or(0.0);
-        self.presentation.subtitle.vertical_offset_fraction = Some(
-            subtitle_vertical_offset_after_adjustment(current_offset_fraction, delta),
-        );
+        let style = SubtitleStyle {
+            vertical_offset_fraction: Some(subtitle_vertical_offset_after_adjustment(
+                current_offset_fraction,
+                delta,
+            )),
+            ..SubtitleStyle::get(cx)
+        }
+        .normalized();
+        if self.presentation.subtitle.vertical_offset_fraction == style.vertical_offset_fraction {
+            return;
+        }
+        self.presentation.subtitle.vertical_offset_fraction = style.vertical_offset_fraction;
+        cx.emit(PlaybackEvent::SubtitleVerticalPositionChanged {
+            fraction: style.vertical_offset_fraction,
+        });
         cx.notify();
     }
 
-    pub(super) fn render_subtitle_overlay(&self) -> impl IntoElement {
+    pub(super) fn render_subtitle_overlay(&self, cx: &gpui::App) -> impl IntoElement {
         if self.presentation.subtitle.hidden {
             return div()
                 .id("playback-subtitle-overlay-empty")
@@ -61,6 +74,7 @@ impl PlaybackPage {
         }
 
         let subtitle_scale = normalized_subtitle_scale(self.subtitle_scale);
+        let subtitle_style = SubtitleStyle::get(cx);
         let bitmap_canvas_size = subtitle_bitmap_canvas_size(cue).unwrap_or(source_size);
         let bitmap_bounds =
             aspect_fit_bounds(video_bounds, bitmap_canvas_size).unwrap_or(video_fitted_bounds);
@@ -150,11 +164,14 @@ impl PlaybackPage {
                         div()
                             .max_w(relative(0.86))
                             .px_3()
-                            .text_center()
-                            .text_size(px(30.0 * subtitle_scale))
-                            .line_height(px(36.0 * subtitle_scale))
-                            .text_color(rgb(0xffffff))
-                            .child(cue.text.clone()),
+                            .when_some(subtitle_style.background.rgba_hex(), |this, color| {
+                                this.py_1().rounded(px(2.0)).bg(rgba(color))
+                            })
+                            .child(render_subtitle_text(
+                                cue.text.clone(),
+                                subtitle_style,
+                                subtitle_scale,
+                            )),
                     ),
             )
             .into_any_element()
@@ -260,6 +277,50 @@ pub(super) fn subtitle_bitmap_overlay_top_for_bottom(
 
 pub(super) fn subtitle_vertical_offset_after_adjustment(current_offset: f32, delta: f32) -> f32 {
     current_offset + delta
+}
+
+pub(super) fn subtitle_outline_offsets(width: f32) -> Vec<(f32, f32)> {
+    if width <= 0.0 {
+        return Vec::new();
+    }
+    vec![
+        (-width, 0.0),
+        (width, 0.0),
+        (0.0, -width),
+        (0.0, width),
+        (-width, -width),
+        (-width, width),
+        (width, -width),
+        (width, width),
+    ]
+}
+
+fn render_subtitle_text(text: SharedString, style: SubtitleStyle, scale: f32) -> impl IntoElement {
+    let text_size = px(30.0 * scale);
+    let line_height = px(36.0 * scale);
+    let mut stack = div().relative();
+    for (x, y) in subtitle_outline_offsets(style.outline.width_px() * scale) {
+        stack = stack.child(
+            div()
+                .absolute()
+                .left(px(x))
+                .top(px(y))
+                .w_full()
+                .text_size(text_size)
+                .line_height(line_height)
+                .text_center()
+                .text_color(rgb(0x000000))
+                .child(text.clone()),
+        );
+    }
+    stack.child(
+        div()
+            .text_size(text_size)
+            .line_height(line_height)
+            .text_center()
+            .text_color(rgb(style.text_color.rgb_hex()))
+            .child(text),
+    )
 }
 
 pub(super) fn subtitle_vertical_adjust_step() -> f32 {
@@ -476,6 +537,15 @@ mod tests {
             subtitle_render_bottom(video_fitted_bounds, default_bottom, Some(manual_offset)),
             px(520.5)
         );
+    }
+
+    #[test]
+    fn subtitle_outline_offsets_use_eight_directions_and_scale() {
+        assert!(subtitle_outline_offsets(0.0).is_empty());
+        let offsets = subtitle_outline_offsets(2.0);
+        assert_eq!(offsets.len(), 8);
+        assert!(offsets.contains(&(-2.0, -2.0)));
+        assert!(offsets.contains(&(0.0, 2.0)));
     }
 
     #[test]

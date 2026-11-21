@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     app_metadata,
-    media::{ItemSortPreferences, PlaybackLanguagePreferences},
+    media::{ItemSortPreferences, PlaybackLanguagePreferences, SubtitleStyle},
     search_history::SearchHistory,
     server::CachedServer,
     settings::AppLanguage,
@@ -42,6 +42,8 @@ pub struct ServerCache {
     #[serde(default)]
     pub items_sort: ItemSortPreferences,
     #[serde(default)]
+    pub subtitle_style: SubtitleStyle,
+    #[serde(default)]
     pub playback_debug_log: bool,
 }
 
@@ -66,6 +68,7 @@ impl ServerCache {
             playback_volume: PlaybackVolumeSettings::default(),
             search_history: SearchHistory::default(),
             items_sort: ItemSortPreferences::default(),
+            subtitle_style: SubtitleStyle::default(),
             playback_debug_log: false,
         }
     }
@@ -354,6 +357,17 @@ mod tests {
         assert_eq!(loaded.device_id, cache.device_id);
         assert_eq!(loaded.servers.len(), 1);
         assert_eq!(loaded.servers[0].access_token.as_deref(), Some("token"));
+    }
+
+    #[test]
+    fn legacy_cache_without_subtitle_style_uses_defaults() {
+        let mut cache = ServerCache::empty();
+        cache.subtitle_style.text_color = crate::media::SubtitleTextColor::Yellow;
+        cache.subtitle_style.vertical_offset_fraction = Some(0.02);
+        let mut json = serde_json::to_value(&cache).unwrap();
+        json.as_object_mut().unwrap().remove("subtitle_style");
+        let loaded: ServerCache = serde_json::from_value(json).unwrap();
+        assert_eq!(loaded.subtitle_style, crate::media::SubtitleStyle::default());
     }
 
     #[test]

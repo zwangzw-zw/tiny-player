@@ -48,6 +48,7 @@ impl TinyApp {
             color_theme: theme::get(cx).selection,
             app_language: self.cache.app_language,
             track_languages: crate::media::PlaybackLanguagePreferences::get(cx),
+            subtitle_style: self.cache.subtitle_style,
         };
         let settings = cx.new(|cx| SettingsDialogState::new(snapshot, mode, cx));
         cx.subscribe(&settings, |app, settings, _: &SettingsChanged, cx| {

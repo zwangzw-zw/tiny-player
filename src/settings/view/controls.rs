@@ -1,5 +1,5 @@
 //! Settings-specific selectors and layout.
-use crate::media::TrackLanguage;
+use crate::media::{SubtitleBackground, SubtitleOutline, SubtitleTextColor, TrackLanguage};
 use crate::ui::{
     dropdown::{DropdownState, selector_row},
     editor::{Editor, EditorEvent},
@@ -26,6 +26,12 @@ pub(crate) const DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION: &str =
 pub(crate) const PLAYBACK_DEBUG_LOG_LABEL: &str = "播放调试日志";
 pub(crate) const PLAYBACK_DEBUG_LOG_DESCRIPTION: &str =
     "记录播放 DEBUG 及以上级别的原始消息、状态和错误详情。立即生效。";
+pub(crate) const SUBTITLE_TEXT_COLOR_DESCRIPTION: &str =
+    "选择文字字幕的颜色；位图字幕保持原样。";
+pub(crate) const SUBTITLE_OUTLINE_DESCRIPTION: &str =
+    "为文字字幕添加黑色描边，提高亮色画面下的可读性。";
+pub(crate) const SUBTITLE_BACKGROUND_DESCRIPTION: &str =
+    "在文字字幕背后添加半透明背景，提高复杂画面下的可读性。";
 
 #[cfg(test)]
 mod tests;
@@ -106,6 +112,49 @@ pub(crate) fn app_language_selector(
         on_select,
     )
     .localize_options(false)
+}
+
+pub(crate) fn subtitle_text_color_selector(
+    state: Entity<DropdownState>,
+    selected: SubtitleTextColor,
+    on_select: impl Fn(SubtitleTextColor, &mut App) + 'static,
+) -> impl IntoElement {
+    selector_row(
+        ("subtitle-color-dropdown", "字幕颜色"),
+        state,
+        SubtitleTextColor::ALL.map(|color| (color.id(), color.name(), color)),
+        selected,
+        on_select,
+    )
+}
+
+pub(crate) fn subtitle_outline_selector(
+    state: Entity<DropdownState>,
+    selected: SubtitleOutline,
+    on_select: impl Fn(SubtitleOutline, &mut App) + 'static,
+) -> impl IntoElement {
+    selector_row(
+        ("subtitle-outline-dropdown", "字幕描边"),
+        state,
+        SubtitleOutline::ALL.map(|outline| (outline.id(), outline.name(), outline)),
+        selected,
+        on_select,
+    )
+}
+
+pub(crate) fn subtitle_background_selector(
+    state: Entity<DropdownState>,
+    selected: SubtitleBackground,
+    on_select: impl Fn(SubtitleBackground, &mut App) + 'static,
+) -> impl IntoElement {
+    selector_row(
+        ("subtitle-background-dropdown", "字幕背景"),
+        state,
+        SubtitleBackground::ALL
+            .map(|background| (background.id(), background.name(), background)),
+        selected,
+        on_select,
+    )
 }
 
 pub(crate) fn hardware_decode_selector(
