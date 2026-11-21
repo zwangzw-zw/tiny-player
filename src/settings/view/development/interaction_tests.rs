@@ -603,11 +603,9 @@ fn content_fills_window_and_scrolls_below_fixed_titlebar_at_supported_window_siz
             cx.debug_bounds("playback-settings-scrollbar").unwrap(),
             scroll.bounds()
         );
-        if height <= 720.0 {
-            assert!(scroll.max_offset().y > px(0.0));
-        } else {
-            assert_eq!(scroll.max_offset().y, px(0.0));
-        }
+        // The full development settings, including subtitle style rows, exceed
+        // every supported test window size, so scrolling remains available.
+        assert!(scroll.max_offset().y > px(0.0));
         cx.update(|_, cx| {
             dialog.update(cx, |_, cx| {
                 scroll.set_offset(gpui::point(px(0.0), -scroll.max_offset().y));

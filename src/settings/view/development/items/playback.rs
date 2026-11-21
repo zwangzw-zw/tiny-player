@@ -69,6 +69,38 @@ impl PlaybackSettingsDialogState {
             ),
             SettingItem::new(
                 Playback,
+                "视频解码",
+                "硬件解码",
+                DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION,
+                "hardware_decode hwdec vulkan vaapi va-api 硬解 软解",
+                hardware_decode_selector(
+                    self.dropdown.clone(),
+                    SettingsMode::Development,
+                    self.controller.view_model().config.hardware_decode,
+                    {
+                        let dialog = dialog.clone();
+                        move |mode, cx| {
+                            dialog.update(cx, |dialog, cx| dialog.select_hardware_decode(mode, cx))
+                        }
+                    },
+                ),
+            ),
+            SettingItem::new(
+                Playback,
+                "流畅度",
+                "解码器追赶丢帧",
+                "视频落后时跳过部分解码以追赶音频，可能降低画面连贯性。默认关闭。",
+                "decoder_framedrop framedrop 解码 丢帧",
+                toggle(
+                    &dialog,
+                    cx,
+                    ToggleSetting::DecoderFramedrop,
+                    "解码器追赶丢帧",
+                    self.controller.view_model().config.decoder_framedrop,
+                ),
+            ),
+            SettingItem::new(
+                Playback,
                 "字幕样式",
                 "字幕颜色",
                 SUBTITLE_TEXT_COLOR_DESCRIPTION,
@@ -112,38 +144,6 @@ impl PlaybackSettingsDialogState {
                             dialog.select_subtitle_background(background, cx)
                         })
                     },
-                ),
-            ),
-            SettingItem::new(
-                Playback,
-                "视频解码",
-                "硬件解码",
-                DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION,
-                "hardware_decode hwdec vulkan vaapi va-api 硬解 软解",
-                hardware_decode_selector(
-                    self.dropdown.clone(),
-                    SettingsMode::Development,
-                    self.controller.view_model().config.hardware_decode,
-                    {
-                        let dialog = dialog.clone();
-                        move |mode, cx| {
-                            dialog.update(cx, |dialog, cx| dialog.select_hardware_decode(mode, cx))
-                        }
-                    },
-                ),
-            ),
-            SettingItem::new(
-                Playback,
-                "流畅度",
-                "解码器追赶丢帧",
-                "视频落后时跳过部分解码以追赶音频，可能降低画面连贯性。默认关闭。",
-                "decoder_framedrop framedrop 解码 丢帧",
-                toggle(
-                    &dialog,
-                    cx,
-                    ToggleSetting::DecoderFramedrop,
-                    "解码器追赶丢帧",
-                    self.controller.view_model().config.decoder_framedrop,
                 ),
             ),
         ]
