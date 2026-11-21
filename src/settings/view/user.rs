@@ -366,7 +366,7 @@ impl UserSettingsDialogState {
                             ),
                             cx,
                         )),
-                )),
+                ),
             SettingsCategory::Memory => content.child(
                 section("缓存容量", cx)
                     .child(setting_row(
