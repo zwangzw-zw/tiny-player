@@ -295,7 +295,7 @@ pub(super) fn subtitle_outline_offsets(width: f32) -> Vec<(f32, f32)> {
     ]
 }
 
-fn render_subtitle_text(text: SharedString, style: SubtitleStyle, scale: f32) -> impl IntoElement {
+fn render_subtitle_text(text: String, style: SubtitleStyle, scale: f32) -> impl IntoElement {
     let text_size = px(30.0 * scale);
     let line_height = px(36.0 * scale);
     let mut stack = div().relative();

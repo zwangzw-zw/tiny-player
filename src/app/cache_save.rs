@@ -577,7 +577,7 @@ mod tests {
         });
         cx.run_until_parked();
         assert_eq!(
-            cx.update(|_, cx| { crate::media::SubtitleStyle::get(cx).vertical_offset_fraction }),
+            cx.update(|cx| crate::media::SubtitleStyle::get(cx).vertical_offset_fraction),
             Some(0.02)
         );
         cx.executor().advance_clock(CACHE_SAVE_DEBOUNCE);
