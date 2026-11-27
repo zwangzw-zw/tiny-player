@@ -4,6 +4,7 @@ mod item_sort;
 mod language;
 mod queue;
 mod selection;
+mod subtitle_style;
 mod track_metadata;
 mod track_preferences;
 mod tracks;
@@ -16,6 +17,9 @@ pub use queue::{PlaybackQueue, PlaybackQueueItem};
 pub(crate) use selection::{
     playback_audio_tracks_for_source, preferred_playback_media_source,
     preferred_playback_track_selection,
+};
+pub(crate) use subtitle_style::{
+    SubtitleBackground, SubtitleOutline, SubtitleStyle, SubtitleTextColor,
 };
 pub(crate) use track_metadata::track_metadata_label;
 pub use track_preferences::PlaybackTrackPreferenceKey;

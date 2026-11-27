@@ -1,10 +1,12 @@
 //! User-facing preferences. Advanced cache tuning stays in the development dialog.
 use super::controls::{
-    PLAYBACK_DEBUG_LOG_DESCRIPTION, PLAYBACK_DEBUG_LOG_LABEL, SUBTITLE_SCALE_DESCRIPTION,
-    SUBTITLE_SCALE_LABEL, USER_HARDWARE_DECODE_DESCRIPTION, app_language_selector,
+    PLAYBACK_DEBUG_LOG_DESCRIPTION, PLAYBACK_DEBUG_LOG_LABEL, SUBTITLE_BACKGROUND_DESCRIPTION,
+    SUBTITLE_OUTLINE_DESCRIPTION, SUBTITLE_SCALE_DESCRIPTION, SUBTITLE_SCALE_LABEL,
+    SUBTITLE_TEXT_COLOR_DESCRIPTION, USER_HARDWARE_DECODE_DESCRIPTION, app_language_selector,
     disk_cache_capacity_control, disk_cache_capacity_input, hardware_decode_selector,
-    playback_log_location, settings_category_button, settings_sidebar, subtitle_scale_selector,
-    track_language_selector,
+    playback_log_location, settings_category_button, settings_sidebar,
+    subtitle_background_selector, subtitle_outline_selector, subtitle_scale_selector,
+    subtitle_text_color_selector, track_language_selector,
 };
 use super::dialog::SettingsChanged;
 use crate::ui::{
@@ -25,7 +27,7 @@ use gpui::{
 
 use crate::{
     app::window_corner_radii,
-    media::TrackLanguage,
+    media::{SubtitleBackground, SubtitleOutline, SubtitleTextColor, TrackLanguage},
     theme::{self, ColorTheme},
 };
 use tiny_playback::HardwareDecodeMode;
@@ -107,6 +109,9 @@ impl UserSettingsDialogState {
         if let Some(languages) = change.languages {
             languages.apply(cx);
         }
+        if let Some(style) = change.subtitle_style {
+            style.apply_appearance(cx);
+        }
         if change.persist {
             cx.emit(SettingsChanged);
         }
@@ -130,6 +135,21 @@ impl UserSettingsDialogState {
         self.dispatch(SettingsIntent::HardwareDecode(mode), cx);
     }
 
+    fn select_subtitle_text_color(&mut self, color: SubtitleTextColor, cx: &mut Context<Self>) {
+        self.dispatch(SettingsIntent::SubtitleTextColor(color), cx);
+    }
+
+    fn select_subtitle_outline(&mut self, outline: SubtitleOutline, cx: &mut Context<Self>) {
+        self.dispatch(SettingsIntent::SubtitleOutline(outline), cx);
+    }
+
+    fn select_subtitle_background(
+        &mut self,
+        background: SubtitleBackground,
+        cx: &mut Context<Self>,
+    ) {
+        self.dispatch(SettingsIntent::SubtitleBackground(background), cx);
+    }
     fn toggle_disk_cache(&mut self, cx: &mut Context<Self>) {
         self.dispatch(SettingsIntent::Toggle(ToggleSetting::DiskCache), cx);
     }
@@ -163,6 +183,9 @@ impl UserSettingsDialogState {
         let disk_dialog = cx.entity();
         let decode_dialog = cx.entity();
         let scale_dialog = cx.entity();
+        let color_dialog = cx.entity();
+        let outline_dialog = cx.entity();
+        let background_dialog = cx.entity();
         let logging_dialog = cx.entity();
         let logging_enabled = self.controller.view_model().playback_debug_log;
         let content = div().flex().flex_col().min_w_0().pb_6().child(
@@ -224,51 +247,103 @@ impl UserSettingsDialogState {
                 ),
                 cx,
             ))),
-            SettingsCategory::Playback => content.child(
-                section("首选语言", cx)
-                    .child(setting_row(
-                        "user-setting-audio",
-                        "音轨语言",
-                        "播放时优先选择此语言；Default 或无匹配时使用默认音轨。",
-                        self.language_control(true, cx),
-                        cx,
-                    ))
-                    .child(setting_row(
-                        "user-setting-subtitle",
-                        "字幕语言",
-                        "播放时优先选择此语言；Default 或无匹配时使用默认字幕，可在详情页手动选择。",
-                        self.language_control(false, cx),
-                        cx,
-                    ))
-                    .child(setting_row(
-                        "user-setting-subtitle-scale",
-                        SUBTITLE_SCALE_LABEL,
-                        SUBTITLE_SCALE_DESCRIPTION,
-                        subtitle_scale_selector(
-                            self.dropdown.clone(),
-                            self.controller.view_model().config.subtitle_scale,
-                            move |scale, cx| {
-                                scale_dialog.update(cx, |dialog, cx| {
-                                    dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
-                                })
-                            },
-                        ),
-                        cx,
-                    )),
-            ).child(section("视频解码", cx).mt_5().child(setting_row(
-                "user-setting-hardware-decode",
-                "硬件解码",
-                USER_HARDWARE_DECODE_DESCRIPTION,
-                hardware_decode_selector(
-                    self.dropdown.clone(),
-                    SettingsMode::User,
-                    self.controller.view_model().config.hardware_decode,
-                    move |mode, cx| {
-                        decode_dialog.update(cx, |dialog, cx| dialog.select_hardware_decode(mode, cx))
-                    },
+            SettingsCategory::Playback => content
+                .child(
+                    section("首选语言", cx)
+                        .child(setting_row(
+                            "user-setting-audio",
+                            "音轨语言",
+                            "播放时优先选择此语言；Default 或无匹配时使用默认音轨。",
+                            self.language_control(true, cx),
+                            cx,
+                        ))
+                        .child(setting_row(
+                            "user-setting-subtitle",
+                            "字幕语言",
+                            "播放时优先选择此语言；Default 或无匹配时使用默认字幕，可在详情页手动选择。",
+                            self.language_control(false, cx),
+                            cx,
+                        ))
+                        .child(setting_row(
+                            "user-setting-subtitle-scale",
+                            SUBTITLE_SCALE_LABEL,
+                            SUBTITLE_SCALE_DESCRIPTION,
+                            subtitle_scale_selector(
+                                self.dropdown.clone(),
+                                self.controller.view_model().config.subtitle_scale,
+                                move |scale, cx| {
+                                    scale_dialog.update(cx, |dialog, cx| {
+                                        dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
+                                    })
+                                },
+                            ),
+                            cx,
+                        )),
+                )
+                .child(section("视频解码", cx).mt_5().child(setting_row(
+                    "user-setting-hardware-decode",
+                    "硬件解码",
+                    USER_HARDWARE_DECODE_DESCRIPTION,
+                    hardware_decode_selector(
+                        self.dropdown.clone(),
+                        SettingsMode::User,
+                        self.controller.view_model().config.hardware_decode,
+                        move |mode, cx| {
+                            decode_dialog
+                                .update(cx, |dialog, cx| dialog.select_hardware_decode(mode, cx))
+                        },
+                    ),
+                    cx,
+                )))
+                .child(
+                    section("字幕样式", cx)
+                        .mt_5()
+                        .child(setting_row(
+                            "user-setting-subtitle-color",
+                            "字幕颜色",
+                            SUBTITLE_TEXT_COLOR_DESCRIPTION,
+                            subtitle_text_color_selector(
+                                self.dropdown.clone(),
+                                self.controller.view_model().subtitle_style.text_color,
+                                move |color, cx| {
+                                    color_dialog.update(cx, |dialog, cx| {
+                                        dialog.select_subtitle_text_color(color, cx)
+                                    })
+                                },
+                            ),
+                            cx,
+                        ))
+                        .child(setting_row(
+                            "user-setting-subtitle-outline",
+                            "字幕描边",
+                            SUBTITLE_OUTLINE_DESCRIPTION,
+                            subtitle_outline_selector(
+                                self.dropdown.clone(),
+                                self.controller.view_model().subtitle_style.outline,
+                                move |outline, cx| {
+                                    outline_dialog.update(cx, |dialog, cx| {
+                                        dialog.select_subtitle_outline(outline, cx)
+                                    })
+                                },
+                            ),
+                            cx,
+                        ))
+                        .child(setting_row(
+                            "user-setting-subtitle-background",
+                            "字幕背景",
+                            SUBTITLE_BACKGROUND_DESCRIPTION,
+                            subtitle_background_selector(
+                                self.dropdown.clone(),
+                                self.controller.view_model().subtitle_style.background,
+                                move |background, cx| {
+                                    background_dialog.update(cx, |dialog, cx| {
+                                        dialog.select_subtitle_background(background, cx)
+                                    })
+                                },
+                            ),
+                            cx,
+                        )),
                 ),
-                cx,
-            ))),
             SettingsCategory::Memory => content.child(
                 section("缓存容量", cx)
                     .child(setting_row(

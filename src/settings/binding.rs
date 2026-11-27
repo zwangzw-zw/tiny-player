@@ -1,9 +1,10 @@
-//! GPUI global binding for shared media language preferences.
-use crate::media::{ItemSortPreferences, PlaybackLanguagePreferences};
+//! GPUI global binding for shared media preferences.
+use crate::media::{ItemSortPreferences, PlaybackLanguagePreferences, SubtitleStyle};
 use gpui::{App, Global};
 
 impl Global for PlaybackLanguagePreferences {}
 impl Global for ItemSortPreferences {}
+impl Global for SubtitleStyle {}
 
 impl ItemSortPreferences {
     pub(crate) fn get(cx: &App) -> Self {
@@ -30,5 +31,59 @@ impl PlaybackLanguagePreferences {
     }
 }
 
+impl SubtitleStyle {
+    pub(crate) fn get(cx: &App) -> Self {
+        cx.try_global::<Self>()
+            .copied()
+            .unwrap_or_default()
+            .normalized()
+    }
+
+    pub(crate) fn apply(self, cx: &mut App) {
+        let style = self.normalized();
+        if cx.try_global::<Self>() != Some(&style) {
+            cx.set_global(style);
+            cx.refresh_windows();
+        }
+    }
+
+    /// Apply appearance changes without rolling back a vertical position that
+    /// playback updated after the settings window opened its snapshot.
+    pub(crate) fn apply_appearance(self, cx: &mut App) {
+        let mut style = self;
+        style.vertical_offset_fraction = Self::get(cx).vertical_offset_fraction;
+        style.apply(cx);
+    }
+}
+
 mod track_preferences;
 pub(crate) use track_preferences::PlaybackTrackPreferences;
+
+#[cfg(test)]
+mod tests {
+    use super::SubtitleStyle;
+    use crate::media::SubtitleTextColor;
+    use gpui::TestAppContext;
+
+    #[gpui::test]
+    fn appearance_changes_preserve_vertical_position(cx: &mut TestAppContext) {
+        cx.update(|cx| {
+            SubtitleStyle {
+                vertical_offset_fraction: Some(0.02),
+                ..Default::default()
+            }
+            .apply(cx);
+
+            SubtitleStyle {
+                text_color: SubtitleTextColor::Yellow,
+                vertical_offset_fraction: None,
+                ..Default::default()
+            }
+            .apply_appearance(cx);
+
+            let style = SubtitleStyle::get(cx);
+            assert_eq!(style.text_color, SubtitleTextColor::Yellow);
+            assert_eq!(style.vertical_offset_fraction, Some(0.02));
+        });
+    }
+}

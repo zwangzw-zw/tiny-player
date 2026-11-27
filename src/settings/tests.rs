@@ -18,6 +18,7 @@ fn controller(mode: SettingsMode) -> SettingsController {
         AppLanguage::default(),
         PlaybackLanguagePreferences::default(),
         false,
+        Default::default(),
     )
 }
 
@@ -100,6 +101,58 @@ fn interface_language_changes_save_once_and_preserve_playback_and_track_preferen
                 .dispatch(SettingsIntent::AppLanguage(AppLanguage::English))
                 .persist
         );
+        assert_eq!(controller.snapshot(), original);
+    }
+}
+
+#[test]
+fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
+    use crate::media::{SubtitleBackground, SubtitleOutline, SubtitleTextColor};
+
+    for mode in [SettingsMode::Development, SettingsMode::User] {
+        let mut controller = controller(mode);
+        let original = controller.snapshot();
+
+        let change =
+            controller.dispatch(SettingsIntent::SubtitleTextColor(SubtitleTextColor::Yellow));
+        assert!(change.persist && change.view_changed);
+        assert_eq!(
+            change.subtitle_style.map(|style| style.text_color),
+            Some(SubtitleTextColor::Yellow)
+        );
+        assert_eq!(
+            controller.view_model().subtitle_style.text_color,
+            SubtitleTextColor::Yellow
+        );
+        assert_eq!(controller.snapshot().playback, original.playback);
+
+        controller.dispatch(SettingsIntent::SubtitleOutline(SubtitleOutline::Medium));
+        controller.dispatch(SettingsIntent::SubtitleBackground(
+            SubtitleBackground::Strong,
+        ));
+        assert_eq!(
+            controller.view_model().subtitle_style,
+            crate::media::SubtitleStyle {
+                text_color: SubtitleTextColor::Yellow,
+                outline: SubtitleOutline::Medium,
+                background: SubtitleBackground::Strong,
+                vertical_offset_fraction: None,
+            }
+        );
+
+        let mut config = crate::config::GlobalConfig::split(crate::storage::ServerCache::empty()).0;
+        SettingsPersistenceAdapter::apply(controller.snapshot(), &mut config);
+        assert_eq!(config.subtitle_style, controller.snapshot().subtitle_style);
+
+        let reopened = SettingsController::from_snapshot(controller.snapshot(), mode);
+        assert_eq!(
+            reopened.view_model().subtitle_style,
+            controller.snapshot().subtitle_style
+        );
+
+        controller.dispatch(SettingsIntent::SubtitleTextColor(SubtitleTextColor::White));
+        controller.dispatch(SettingsIntent::SubtitleOutline(SubtitleOutline::Off));
+        controller.dispatch(SettingsIntent::SubtitleBackground(SubtitleBackground::Off));
         assert_eq!(controller.snapshot(), original);
     }
 }
@@ -336,6 +389,7 @@ fn integer_edit_normalizes_dependencies_without_changing_the_requested_value() {
         AppLanguage::default(),
         PlaybackLanguagePreferences::default(),
         false,
+        Default::default(),
     );
     assert!(edit(&mut controller, NumericSetting::HttpCacheChunkMib, "16").persist);
     let config = controller.view_model().config;
@@ -419,6 +473,31 @@ fn capacity_and_persistence_adapter_preserve_unrelated_global_and_catalog_data()
     assert_eq!(saved.playback_volume.level, 0.47);
     assert_eq!(saved.window_size().unwrap().width, 1234);
     assert_eq!(saved.auto_start_server_id.as_deref(), Some("unchanged"));
+}
+
+#[test]
+fn subtitle_appearance_updates_preserve_vertical_position() {
+    use crate::media::{SubtitleStyle, SubtitleTextColor};
+
+    let mut config = crate::config::GlobalConfig::split(crate::storage::ServerCache::empty()).0;
+    config.subtitle_style.vertical_offset_fraction = Some(0.02);
+    let snapshot = SettingsSnapshot {
+        playback_debug_log: false,
+        playback: PlaybackCacheConfig::default(),
+        color_theme: ColorTheme::default(),
+        app_language: AppLanguage::default(),
+        track_languages: PlaybackLanguagePreferences::default(),
+        subtitle_style: SubtitleStyle {
+            text_color: SubtitleTextColor::Yellow,
+            vertical_offset_fraction: None,
+            ..Default::default()
+        },
+    };
+
+    SettingsPersistenceAdapter::apply(snapshot, &mut config);
+
+    assert_eq!(config.subtitle_style.text_color, SubtitleTextColor::Yellow);
+    assert_eq!(config.subtitle_style.vertical_offset_fraction, Some(0.02));
 }
 
 #[test]
