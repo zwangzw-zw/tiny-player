@@ -7,6 +7,14 @@ on:
         description: Build and upload release packages (required for manual master releases)
         type: boolean
         default: false
+      windows:
+        description: Run the Windows validation/package job
+        type: boolean
+        default: true
+      skip_tests:
+        description: Skip test and Clippy steps (fast dev artifact builds)
+        type: boolean
+        default: false
   push:
     branches: [master]
 
@@ -129,6 +137,7 @@ jobs:
           key: linux-cargo-${{ hashFiles('packaging/linux/Dockerfile', 'packaging/linux/build-*.sh') }}-${{ steps.ffmpeg.outputs.commit }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: linux-cargo-${{ hashFiles('packaging/linux/Dockerfile', 'packaging/linux/build-*.sh') }}-${{ steps.ffmpeg.outputs.commit }}-
       - name: Run Linux tests and Clippy
+        if: ${{ !inputs.skip_tests }}
         run: |
           mkdir -p target/linux-x86_64-glibc2.39
           # dbus-daemon resolves its UID through NSS before starting the test bus.
@@ -182,6 +191,7 @@ jobs:
   windows:
     name: Build Windows x86_64 portable package
     needs: checks
+    if: ${{ github.event_name == 'push' || inputs.windows }}
     runs-on: windows-2022
     timeout-minutes: 120
     env:
@@ -233,6 +243,7 @@ jobs:
           key: windows-msvc-1.98.1-${{ hashFiles('packaging/windows/native-lock.json', 'packaging/windows/cargo.toml', 'packaging/windows/prepare.py', 'crates/tiny-playback/build.rs') }}-${{ steps.ffmpeg.outputs.sha256 }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: windows-msvc-1.98.1-${{ hashFiles('packaging/windows/native-lock.json', 'packaging/windows/cargo.toml', 'packaging/windows/prepare.py', 'crates/tiny-playback/build.rs') }}-${{ steps.ffmpeg.outputs.sha256 }}-
       - name: Run Windows tests and Clippy
+        if: ${{ !inputs.skip_tests }}
         run: |
           ./scripts/package-windows.ps1 -Mode Test
           ./scripts/package-windows.ps1 -Mode Clippy
