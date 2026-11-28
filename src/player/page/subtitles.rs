@@ -331,7 +331,7 @@ fn render_subtitle_text(text: String, style: SubtitleStyle, scale: f32) -> impl 
     let text_size = px(30.0 * scale);
     let line_height = px(36.0 * scale);
     let mut stack = div().relative();
-    let outline_width = style.outline.width_px();
+    let outline_width = style.outline.width_px(scale);
     if outline_width > 0.0 {
         for (x, y) in subtitle_outline_offsets(outline_width) {
             stack = stack.child(
@@ -578,7 +578,9 @@ mod tests {
     fn subtitle_outline_offsets_fill_each_ring_without_gaps() {
         assert_eq!(subtitle_outline_offsets(0.0).count(), 0);
         assert_eq!(subtitle_outline_offsets(1.0).count(), 8);
+        assert_eq!(subtitle_outline_offsets(1.5).count(), 10);
         assert_eq!(subtitle_outline_offsets(2.0).count(), 21);
+        assert_eq!(subtitle_outline_offsets(2.5).count(), 24);
         assert_eq!(subtitle_outline_offsets(3.0).count(), 29);
 
         let offsets: Vec<_> = subtitle_outline_offsets(3.0).collect();

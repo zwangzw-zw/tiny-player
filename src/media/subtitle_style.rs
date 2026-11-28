@@ -75,11 +75,25 @@ impl SubtitleOutline {
         }
     }
 
-    /// Outline width in logical pixels when enabled.
-    pub(crate) fn width_px(self) -> f32 {
+    /// Outline width in logical pixels for the given subtitle scale.
+    ///
+    /// The width grows sublinearly so the stroke stays at roughly 5–7% of the
+    /// em size across the 0.8×–2.0× presets: a constant width looks heavy on
+    /// small subtitles and thin on large ones. Half-pixel steps keep the jump
+    /// between presets smooth while staying cheap to blit.
+    pub(crate) fn width_px(self, scale: f32) -> f32 {
         match self {
             Self::Off => 0.0,
-            Self::On => 3.0,
+            Self::On => {
+                let scale = if scale.is_finite() && scale > 0.0 {
+                    scale
+                } else {
+                    1.0
+                };
+                let base = 2.0 * scale.sqrt();
+                let width = (base * 2.0).round() * 0.5;
+                width.clamp(1.5, 3.0)
+            }
         }
     }
 }
@@ -175,7 +189,7 @@ mod tests {
         assert_eq!(style.background, SubtitleBackground::Off);
         assert_eq!(style.vertical_offset_fraction, None);
         assert_eq!(style.text_color.rgb_hex(), 0xffffff);
-        assert_eq!(style.outline.width_px(), 0.0);
+        assert_eq!(style.outline.width_px(1.0), 0.0);
         assert_eq!(style.background.rgba_hex(), None);
     }
 
@@ -248,7 +262,20 @@ mod tests {
         assert_eq!(SubtitleTextColor::LightGray.rgb_hex(), 0xd0d0d0);
         assert_eq!(SubtitleBackground::Subtle.rgba_hex(), Some(0x00000073));
         assert_eq!(SubtitleBackground::Strong.rgba_hex(), Some(0x000000bf));
-        assert_eq!(SubtitleOutline::Off.width_px(), 0.0);
-        assert_eq!(SubtitleOutline::On.width_px(), 3.0);
+        assert_eq!(SubtitleOutline::Off.width_px(1.0), 0.0);
+        assert_eq!(SubtitleOutline::On.width_px(1.0), 2.0);
+    }
+
+    #[test]
+    fn outline_width_grows_sublinearly_with_subtitle_scale() {
+        let widths = [0.8, 1.0, 1.2, 1.5, 2.0].map(|scale| SubtitleOutline::On.width_px(scale));
+        assert_eq!(widths, [2.0, 2.0, 2.0, 2.5, 3.0]);
+        // The player clamps scale to 0.5×–3.0×.
+        assert_eq!(SubtitleOutline::On.width_px(0.5), 1.5);
+        assert_eq!(SubtitleOutline::On.width_px(0.25), 1.5);
+        assert_eq!(SubtitleOutline::On.width_px(3.0), 3.0);
+        for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, 0.0, -1.0] {
+            assert_eq!(SubtitleOutline::On.width_px(invalid), 2.0, "{invalid}");
+        }
     }
 }
