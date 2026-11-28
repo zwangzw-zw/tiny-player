@@ -40,21 +40,22 @@ skip_tests=true
 [[ $with_tests == 1 ]] && skip_tests=false
 
 echo "Dispatching Linux dev build for $branch (tests/Clippy: $([[ $skip_tests == true ]] && echo skipped || echo included))"
-gh workflow run release.yml --ref "$branch" -R "$repo" \
-    -f package=true -f windows=false -f skip_tests="$skip_tests"
-
 before=$(gh run list -R "$repo" --workflow release.yml --branch "$branch" \
     --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
-run_id=
-for _ in {1..30}; do
-    run_id=$(gh run list -R "$repo" --workflow release.yml --branch "$branch" \
-        --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
-    if [[ -n $run_id && $run_id != "$before" ]]; then
-        break
-    fi
-    run_id=
-    sleep 2
-done
+dispatch_output=$(gh workflow run release.yml --ref "$branch" -R "$repo" \
+    -f package=true -f windows=false -f skip_tests="$skip_tests")
+run_id=$(sed -n 's#.*/actions/runs/\([0-9][0-9]*\).*#\1#p' <<< "$dispatch_output" | head -n 1)
+if [[ -z $run_id ]]; then
+    for _ in {1..30}; do
+        candidate=$(gh run list -R "$repo" --workflow release.yml --branch "$branch" \
+            --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
+        if [[ -n $candidate && $candidate != "$before" ]]; then
+            run_id=$candidate
+            break
+        fi
+        sleep 2
+    done
+fi
 if [[ -z $run_id ]]; then
     echo 'Could not find the dispatched run.' >&2
     exit 1
