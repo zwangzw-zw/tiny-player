@@ -126,7 +126,7 @@ fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
         );
         assert_eq!(controller.snapshot().playback, original.playback);
 
-        controller.dispatch(SettingsIntent::SubtitleOutline(SubtitleOutline::Medium));
+        controller.dispatch(SettingsIntent::SubtitleOutline(SubtitleOutline::On));
         controller.dispatch(SettingsIntent::SubtitleBackground(
             SubtitleBackground::Strong,
         ));
@@ -134,7 +134,7 @@ fn subtitle_style_changes_persist_apply_and_preserve_other_preferences() {
             controller.view_model().subtitle_style,
             crate::media::SubtitleStyle {
                 text_color: SubtitleTextColor::Yellow,
-                outline: SubtitleOutline::Medium,
+                outline: SubtitleOutline::On,
                 background: SubtitleBackground::Strong,
                 vertical_offset_fraction: None,
             }

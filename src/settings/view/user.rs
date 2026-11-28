@@ -264,21 +264,6 @@ impl UserSettingsDialogState {
                             self.language_control(false, cx),
                             cx,
                         ))
-                        .child(setting_row(
-                            "user-setting-subtitle-scale",
-                            SUBTITLE_SCALE_LABEL,
-                            SUBTITLE_SCALE_DESCRIPTION,
-                            subtitle_scale_selector(
-                                self.dropdown.clone(),
-                                self.controller.view_model().config.subtitle_scale,
-                                move |scale, cx| {
-                                    scale_dialog.update(cx, |dialog, cx| {
-                                        dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
-                                    })
-                                },
-                            ),
-                            cx,
-                        )),
                 )
                 .child(section("视频解码", cx).mt_5().child(setting_row(
                     "user-setting-hardware-decode",
@@ -298,6 +283,21 @@ impl UserSettingsDialogState {
                 .child(
                     section("字幕样式", cx)
                         .mt_5()
+                        .child(setting_row(
+                            "user-setting-subtitle-scale",
+                            SUBTITLE_SCALE_LABEL,
+                            SUBTITLE_SCALE_DESCRIPTION,
+                            subtitle_scale_selector(
+                                self.dropdown.clone(),
+                                self.controller.view_model().config.subtitle_scale,
+                                move |scale, cx| {
+                                    scale_dialog.update(cx, |dialog, cx| {
+                                        dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
+                                    })
+                                },
+                            ),
+                            cx,
+                        ))
                         .child(setting_row(
                             "user-setting-subtitle-color",
                             "字幕颜色",

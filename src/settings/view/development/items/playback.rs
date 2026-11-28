@@ -74,25 +74,6 @@ impl PlaybackSettingsDialogState {
             ),
             SettingItem::new(
                 Playback,
-                "首选语言",
-                SUBTITLE_SCALE_LABEL,
-                SUBTITLE_SCALE_DESCRIPTION,
-                "subtitle_scale subtitle size",
-                subtitle_scale_selector(
-                    self.dropdown.clone(),
-                    self.controller.view_model().config.subtitle_scale,
-                    {
-                        let dialog = dialog.clone();
-                        move |scale, cx| {
-                            dialog.update(cx, |dialog, cx| {
-                                dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
-                            })
-                        }
-                    },
-                ),
-            ),
-            SettingItem::new(
-                Playback,
                 "视频解码",
                 "硬件解码",
                 DEVELOPMENT_HARDWARE_DECODE_DESCRIPTION,
@@ -121,6 +102,25 @@ impl PlaybackSettingsDialogState {
                     ToggleSetting::DecoderFramedrop,
                     "解码器追赶丢帧",
                     self.controller.view_model().config.decoder_framedrop,
+                ),
+            ),
+            SettingItem::new(
+                Playback,
+                "字幕样式",
+                SUBTITLE_SCALE_LABEL,
+                SUBTITLE_SCALE_DESCRIPTION,
+                "subtitle_scale subtitle size",
+                subtitle_scale_selector(
+                    self.dropdown.clone(),
+                    self.controller.view_model().config.subtitle_scale,
+                    {
+                        let dialog = dialog.clone();
+                        move |scale, cx| {
+                            dialog.update(cx, |dialog, cx| {
+                                dialog.dispatch(SettingsIntent::SubtitleScale(scale), cx)
+                            })
+                        }
+                    },
                 ),
             ),
             SettingItem::new(

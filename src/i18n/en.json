@@ -598,9 +598,7 @@
   "暖白色": "Warm white",
   "黄色": "Yellow",
   "浅灰色": "Light gray",
-  "细": "Thin",
-  "中": "Medium",
-  "粗": "Thick",
+  "开启": "On",
   "半透明": "Translucent",
   "深色": "Dark",
   "保存字幕位置失败": "Failed to save subtitle position"

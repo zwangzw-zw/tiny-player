@@ -54,39 +54,32 @@ impl SubtitleTextColor {
 pub enum SubtitleOutline {
     #[default]
     Off,
-    Thin,
-    Medium,
-    Thick,
+    #[serde(other)]
+    On,
 }
 
 impl SubtitleOutline {
-    pub(crate) const ALL: [Self; 4] = [Self::Off, Self::Thin, Self::Medium, Self::Thick];
+    pub(crate) const ALL: [Self; 2] = [Self::Off, Self::On];
 
     pub(crate) fn id(self) -> &'static str {
         match self {
             Self::Off => "subtitle-outline-off",
-            Self::Thin => "subtitle-outline-thin",
-            Self::Medium => "subtitle-outline-medium",
-            Self::Thick => "subtitle-outline-thick",
+            Self::On => "subtitle-outline-on",
         }
     }
 
     pub(crate) fn name(self) -> &'static str {
         match self {
             Self::Off => "关闭",
-            Self::Thin => "细",
-            Self::Medium => "中",
-            Self::Thick => "粗",
+            Self::On => "开启",
         }
     }
 
-    /// Outline radius in window pixels at 1x subtitle scale.
+    /// One logical pixel when enabled; not scaled with subtitle size.
     pub(crate) fn width_px(self) -> f32 {
         match self {
             Self::Off => 0.0,
-            Self::Thin => 1.0,
-            Self::Medium => 2.0,
-            Self::Thick => 3.0,
+            Self::On => 1.0,
         }
     }
 }
@@ -236,13 +229,26 @@ mod tests {
     }
 
     #[test]
+    fn legacy_outline_presets_deserialize_to_on() {
+        for value in ["thin", "medium", "thick"] {
+            let style: SubtitleStyle =
+                serde_json::from_str(&format!(r#"{{"outline":"{value}"}}"#)).unwrap();
+            assert_eq!(style.outline, SubtitleOutline::On, "{value}");
+        }
+        let style: SubtitleStyle = serde_json::from_str(r#"{"outline":"on"}"#).unwrap();
+        assert_eq!(style.outline, SubtitleOutline::On);
+        let style: SubtitleStyle = serde_json::from_str(r#"{"outline":"off"}"#).unwrap();
+        assert_eq!(style.outline, SubtitleOutline::Off);
+    }
+
+    #[test]
     fn presets_map_to_expected_colors() {
         assert_eq!(SubtitleTextColor::WarmWhite.rgb_hex(), 0xf5f0e1);
         assert_eq!(SubtitleTextColor::Yellow.rgb_hex(), 0xffe066);
         assert_eq!(SubtitleTextColor::LightGray.rgb_hex(), 0xd0d0d0);
         assert_eq!(SubtitleBackground::Subtle.rgba_hex(), Some(0x00000073));
         assert_eq!(SubtitleBackground::Strong.rgba_hex(), Some(0x000000bf));
-        assert_eq!(SubtitleOutline::Thin.width_px(), 1.0);
-        assert_eq!(SubtitleOutline::Thick.width_px(), 3.0);
+        assert_eq!(SubtitleOutline::Off.width_px(), 0.0);
+        assert_eq!(SubtitleOutline::On.width_px(), 1.0);
     }
 }
