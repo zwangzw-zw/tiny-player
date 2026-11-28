@@ -2,6 +2,11 @@ name: Build and release
 
 on:
   workflow_dispatch:
+    inputs:
+      package:
+        description: Build and upload release packages (required for manual master releases)
+        type: boolean
+        default: false
   push:
     branches: [master]
 
@@ -121,7 +126,7 @@ jobs:
         uses: actions/cache@v6
         with:
           path: target/linux-x86_64-glibc2.39
-          key: linux-cargo-${{ hashFiles('packaging/linux/Dockerfile', 'packaging/linux/build-*.sh') }}-${{ steps.ffmpeg.outputs.commit }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+          key: linux-cargo-${{ hashFiles('packaging/linux/Dockerfile', 'packaging/linux/build-*.sh') }}-${{ steps.ffmpeg.outputs.commit }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: linux-cargo-${{ hashFiles('packaging/linux/Dockerfile', 'packaging/linux/build-*.sh') }}-${{ steps.ffmpeg.outputs.commit }}-
       - name: Run Linux tests and Clippy
         run: |
@@ -144,8 +149,10 @@ jobs:
               cargo clippy --manifest-path /src/Cargo.toml --workspace --locked --target x86_64-unknown-linux-gnu --all-targets -- -D warnings
             '
       - name: Assemble and audit Linux package
+        if: ${{ github.event_name == 'push' || inputs.package }}
         run: ./scripts/package-linux.sh --skip-image-build
       - name: Verify Linux package checksums
+        if: ${{ github.event_name == 'push' || inputs.package }}
         working-directory: dist
         env:
           RELEASE_VERSION: ${{ needs.checks.outputs.version }}
@@ -157,6 +164,7 @@ jobs:
             "tiny-player-$RELEASE_VERSION-linux-x86_64.tar.gz.sha256" \
             "tiny-player-$RELEASE_VERSION-linux-x86_64.AppImage.sha256"
       - name: Upload Linux release files
+        if: ${{ github.event_name == 'push' || inputs.package }}
         uses: actions/upload-artifact@v7
         with:
           name: release-linux
@@ -178,6 +186,8 @@ jobs:
     timeout-minutes: 120
     env:
       TINY_WINDOWS_NATIVE_LOCK: ${{ github.workspace }}/target/windows-x86_64/native-lock.json
+      RUSTC_WRAPPER: sccache
+      SCCACHE_GHA_ENABLED: "true"
     defaults:
       run:
         shell: pwsh
@@ -195,6 +205,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Rust installation failed.' }
           rustup default 1.98.1-x86_64-pc-windows-msvc
           if ($LASTEXITCODE -ne 0) { throw 'Rust toolchain selection failed.' }
+      - uses: mozilla-actions/sccache-action@v0.0.9
       - name: Download and verify latest FFmpeg 9.0 LGPL shared build
         id: ffmpeg
         env:
@@ -219,15 +230,17 @@ jobs:
             target/debug
             target/release
             target/x86_64-pc-windows-msvc
-          key: windows-msvc-1.98.1-${{ hashFiles('packaging/windows/native-lock.json', 'packaging/windows/cargo.toml', 'packaging/windows/prepare.py', 'crates/tiny-playback/build.rs') }}-${{ steps.ffmpeg.outputs.sha256 }}-${{ hashFiles('Cargo.lock') }}-${{ github.sha }}
+          key: windows-msvc-1.98.1-${{ hashFiles('packaging/windows/native-lock.json', 'packaging/windows/cargo.toml', 'packaging/windows/prepare.py', 'crates/tiny-playback/build.rs') }}-${{ steps.ffmpeg.outputs.sha256 }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: windows-msvc-1.98.1-${{ hashFiles('packaging/windows/native-lock.json', 'packaging/windows/cargo.toml', 'packaging/windows/prepare.py', 'crates/tiny-playback/build.rs') }}-${{ steps.ffmpeg.outputs.sha256 }}-
       - name: Run Windows tests and Clippy
         run: |
           ./scripts/package-windows.ps1 -Mode Test
           ./scripts/package-windows.ps1 -Mode Clippy
       - name: Assemble and audit Windows portable package
+        if: ${{ github.event_name == 'push' || inputs.package }}
         run: ./scripts/package-windows.ps1
       - name: Upload Windows release files
+        if: ${{ github.event_name == 'push' || inputs.package }}
         uses: actions/upload-artifact@v7
         with:
           name: release-windows
@@ -240,7 +253,7 @@ jobs:
 
   release:
     name: Publish complete release
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || inputs.package)
     needs: [checks, linux, windows]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
