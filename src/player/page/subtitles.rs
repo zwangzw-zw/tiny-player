@@ -290,29 +290,39 @@ fn stepped_subtitle_vertical_offset(current_offset: f32, delta: f32) -> Option<f
     SubtitleStyle::normalize_vertical_offset(Some(stepped))
 }
 
-const SUBTITLE_OUTLINE_DIRECTIONS: [(f32, f32); 8] = [
-    (-1.0, 0.0),
-    (1.0, 0.0),
-    (0.0, -1.0),
-    (0.0, 1.0),
-    (-1.0, -1.0),
-    (-1.0, 1.0),
-    (1.0, -1.0),
-    (1.0, 1.0),
-];
+/// Maximum spacing between neighbouring samples on one outline ring.
+/// Shorter chords than this keep thick outlines continuous around corners and
+/// thin stems instead of leaving scalloped edges.
+const SUBTITLE_OUTLINE_SAMPLE_CHORD_PX: f32 = 1.0;
+/// Outlines thicker than this get extra rings so the band is filled evenly.
+const SUBTITLE_OUTLINE_RING_SPACING_PX: f32 = 1.5;
 
-/// Sample concentric rings so a 2 px outline fills the band between the glyph
-/// and its outer edge instead of drawing a detached duplicate.
+/// Samples one ring at `radius`, with `staggered` shifting the angles by half
+/// a step so neighbouring rings do not line up their gaps.
+fn outline_ring_samples(radius: f32, staggered: bool) -> impl Iterator<Item = (f32, f32)> {
+    let circumference = std::f32::consts::TAU * radius;
+    let count = (circumference / SUBTITLE_OUTLINE_SAMPLE_CHORD_PX).ceil() as usize;
+    let count = count.clamp(8, 128);
+    let step = std::f32::consts::TAU / count as f32;
+    let phase = if staggered { step / 2.0 } else { 0.0 };
+    (0..count).map(move |index| {
+        let angle = phase + index as f32 * step;
+        (radius * angle.cos(), radius * angle.sin())
+    })
+}
+
+/// Sample circular rings so an outline fills the band between the glyph and
+/// its outer edge instead of drawing a detached duplicate.
 pub(super) fn subtitle_outline_offsets(width: f32) -> impl Iterator<Item = (f32, f32)> {
     let width = if width.is_finite() {
         width.max(0.0)
     } else {
         0.0
     };
-    let rings = width.ceil() as usize;
+    let rings = (width / SUBTITLE_OUTLINE_RING_SPACING_PX).ceil() as usize;
     (0..rings).flat_map(move |index| {
         let radius = width * (index + 1) as f32 / rings.max(1) as f32;
-        SUBTITLE_OUTLINE_DIRECTIONS.map(move |(x, y)| (x * radius, y * radius))
+        outline_ring_samples(radius, index % 2 == 1)
     })
 }
 
@@ -565,13 +575,26 @@ mod tests {
     }
 
     #[test]
-    fn subtitle_outline_offsets_fill_the_two_pixel_band() {
+    fn subtitle_outline_offsets_fill_each_ring_without_gaps() {
         assert_eq!(subtitle_outline_offsets(0.0).count(), 0);
-        assert_eq!(subtitle_outline_offsets(2.0).count(), 16);
-        let offsets: Vec<_> = subtitle_outline_offsets(2.0).collect();
-        assert!(offsets.contains(&(-2.0, -2.0)));
-        assert!(offsets.contains(&(0.0, 2.0)));
-        assert!(offsets.contains(&(-1.0, 0.0)));
+        assert_eq!(subtitle_outline_offsets(1.0).count(), 8);
+        assert_eq!(subtitle_outline_offsets(2.0).count(), 21);
+        assert_eq!(subtitle_outline_offsets(3.0).count(), 29);
+
+        let offsets: Vec<_> = subtitle_outline_offsets(3.0).collect();
+        let radius = |(x, y): &(f32, f32)| (x * x + y * y).sqrt();
+        let inner = offsets
+            .iter()
+            .filter(|o| (radius(o) - 1.5).abs() < 1e-4)
+            .count();
+        let outer = offsets
+            .iter()
+            .filter(|o| (radius(o) - 3.0).abs() < 1e-4)
+            .count();
+        assert_eq!((inner, outer), (10, 19));
+        // Circular rings keep the stroke round: no 8-direction diagonal reach
+        // beyond the requested width, unlike square grids.
+        assert!(offsets.iter().all(|o| radius(o) <= 3.0 + 1e-4));
     }
 
     #[test]

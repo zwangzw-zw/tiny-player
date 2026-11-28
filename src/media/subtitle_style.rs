@@ -79,7 +79,7 @@ impl SubtitleOutline {
     pub(crate) fn width_px(self) -> f32 {
         match self {
             Self::Off => 0.0,
-            Self::On => 2.0,
+            Self::On => 3.0,
         }
     }
 }
@@ -249,6 +249,6 @@ mod tests {
         assert_eq!(SubtitleBackground::Subtle.rgba_hex(), Some(0x00000073));
         assert_eq!(SubtitleBackground::Strong.rgba_hex(), Some(0x000000bf));
         assert_eq!(SubtitleOutline::Off.width_px(), 0.0);
-        assert_eq!(SubtitleOutline::On.width_px(), 2.0);
+        assert_eq!(SubtitleOutline::On.width_px(), 3.0);
     }
 }
