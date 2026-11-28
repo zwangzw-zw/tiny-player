@@ -301,13 +301,19 @@ const SUBTITLE_OUTLINE_DIRECTIONS: [(f32, f32); 8] = [
     (1.0, 1.0),
 ];
 
-pub(super) fn subtitle_outline_offsets(width: f32) -> [(f32, f32); 8] {
+/// Sample concentric rings so a 2 px outline fills the band between the glyph
+/// and its outer edge instead of drawing a detached duplicate.
+pub(super) fn subtitle_outline_offsets(width: f32) -> impl Iterator<Item = (f32, f32)> {
     let width = if width.is_finite() {
         width.max(0.0)
     } else {
         0.0
     };
-    SUBTITLE_OUTLINE_DIRECTIONS.map(|(x, y)| (x * width, y * width))
+    let rings = width.ceil() as usize;
+    (0..rings).flat_map(move |index| {
+        let radius = width * (index + 1) as f32 / rings.max(1) as f32;
+        SUBTITLE_OUTLINE_DIRECTIONS.map(move |(x, y)| (x * radius, y * radius))
+    })
 }
 
 fn render_subtitle_text(text: String, style: SubtitleStyle, scale: f32) -> impl IntoElement {
@@ -559,12 +565,13 @@ mod tests {
     }
 
     #[test]
-    fn subtitle_outline_offsets_use_one_pixel_ring() {
-        assert_eq!(subtitle_outline_offsets(0.0), [(0.0, 0.0); 8]);
-        let offsets = subtitle_outline_offsets(1.0);
-        assert_eq!(offsets.len(), 8);
-        assert!(offsets.contains(&(-1.0, -1.0)));
-        assert!(offsets.contains(&(0.0, 1.0)));
+    fn subtitle_outline_offsets_fill_the_two_pixel_band() {
+        assert_eq!(subtitle_outline_offsets(0.0).count(), 0);
+        assert_eq!(subtitle_outline_offsets(2.0).count(), 16);
+        let offsets: Vec<_> = subtitle_outline_offsets(2.0).collect();
+        assert!(offsets.contains(&(-2.0, -2.0)));
+        assert!(offsets.contains(&(0.0, 2.0)));
+        assert!(offsets.contains(&(-1.0, 0.0)));
     }
 
     #[test]
