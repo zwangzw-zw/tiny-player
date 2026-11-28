@@ -11,20 +11,19 @@ const ZERO_OFFSET_SNAP_FRACTION: f32 = 0.005;
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SubtitleTextColor {
-    #[default]
-    White,
-    WarmWhite,
     Yellow,
     LightGray,
+    #[default]
+    #[serde(other)]
+    White,
 }
 
 impl SubtitleTextColor {
-    pub(crate) const ALL: [Self; 4] = [Self::White, Self::WarmWhite, Self::Yellow, Self::LightGray];
+    pub(crate) const ALL: [Self; 3] = [Self::White, Self::Yellow, Self::LightGray];
 
     pub(crate) fn id(self) -> &'static str {
         match self {
             Self::White => "subtitle-color-white",
-            Self::WarmWhite => "subtitle-color-warm-white",
             Self::Yellow => "subtitle-color-yellow",
             Self::LightGray => "subtitle-color-light-gray",
         }
@@ -33,7 +32,6 @@ impl SubtitleTextColor {
     pub(crate) fn name(self) -> &'static str {
         match self {
             Self::White => "白色",
-            Self::WarmWhite => "暖白色",
             Self::Yellow => "黄色",
             Self::LightGray => "浅灰色",
         }
@@ -42,9 +40,8 @@ impl SubtitleTextColor {
     pub(crate) fn rgb_hex(self) -> u32 {
         match self {
             Self::White => 0xffffff,
-            Self::WarmWhite => 0xf5f0e1,
             Self::Yellow => 0xffe066,
-            Self::LightGray => 0xd0d0d0,
+            Self::LightGray => 0xbdbdbd,
         }
     }
 }
@@ -243,6 +240,15 @@ mod tests {
     }
 
     #[test]
+    fn removed_warm_white_color_deserializes_to_white() {
+        for value in ["warm_white", "magenta"] {
+            let style: SubtitleStyle =
+                serde_json::from_str(&format!(r#"{{"text_color":"{value}"}}"#)).unwrap();
+            assert_eq!(style.text_color, SubtitleTextColor::White, "{value}");
+        }
+    }
+
+    #[test]
     fn legacy_outline_presets_deserialize_to_on() {
         for value in ["thin", "medium", "thick"] {
             let style: SubtitleStyle =
@@ -257,9 +263,8 @@ mod tests {
 
     #[test]
     fn presets_map_to_expected_colors() {
-        assert_eq!(SubtitleTextColor::WarmWhite.rgb_hex(), 0xf5f0e1);
         assert_eq!(SubtitleTextColor::Yellow.rgb_hex(), 0xffe066);
-        assert_eq!(SubtitleTextColor::LightGray.rgb_hex(), 0xd0d0d0);
+        assert_eq!(SubtitleTextColor::LightGray.rgb_hex(), 0xbdbdbd);
         assert_eq!(SubtitleBackground::Subtle.rgba_hex(), Some(0x00000073));
         assert_eq!(SubtitleBackground::Strong.rgba_hex(), Some(0x000000bf));
         assert_eq!(SubtitleOutline::Off.width_px(1.0), 0.0);
